@@ -120,6 +120,7 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
                         console.log('\n\n============================\n\n');
                     }
                     await cloneFolder(driveID, subFolder.id!, newSubFolder.data.id!, deep + 1)
+                    db.addFolder(subFolder.id)
                 } else {
                     console.log(`El folder ${subFolder.name} ya esta copiado`);
                 }
@@ -130,7 +131,7 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
             }
         }
     }
-
+    db.addFolder(fromIDFolder)
 }
 
 
