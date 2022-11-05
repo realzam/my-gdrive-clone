@@ -1,9 +1,11 @@
 import fs from "fs";
 import path from "path";
 
+interface CantCopyInfo { folder: string, fileName: string, fileID: string }
 class DB {
     private files: string[] = [];
     private folder: string[] = [];
+    private cantCopy: CantCopyInfo[] = [];
     private dbFilePath = path.resolve(__dirname, '..', 'db.json')
 
     constructor() {
@@ -16,10 +18,12 @@ class DB {
             if (content != '') {
                 const fileObj: {
                     files: string[],
-                    folder: string[]
+                    folder: string[],
+                    cant_copy: CantCopyInfo[]
                 } = JSON.parse(content)
-                this.files = fileObj.files;
-                this.folder = fileObj.folder;
+                this.files = fileObj.files || [];
+                this.folder = fileObj.folder || [];
+                this.cantCopy = fileObj.cant_copy || [];
             } else {
                 this.saveDBFile();
             }
@@ -29,13 +33,29 @@ class DB {
     }
 
     saveDBFile() {
-        const info = JSON.stringify({ files: this.files, folder: this.folder });
+        const info = JSON.stringify({
+            files: this.files,
+            folder: this.folder,
+            cant_copy: this.cantCopy
+        });
         fs.writeFileSync(this.dbFilePath, info)
     }
 
     addFile(fileID: string) {
         if (fileID != '' && !this.files.includes(fileID)) {
             this.files.push(fileID)
+            this.saveDBFile()
+        }
+    }
+
+    addCantCopy(fileID: string, folder: string, fileName: string) {
+        const fileExist = this.cantCopy.find((obj) => obj.fileID == fileID)
+        if (!fileExist) {
+            this.cantCopy.push({
+                fileID,
+                folder,
+                fileName
+            })
             this.saveDBFile()
         }
     }

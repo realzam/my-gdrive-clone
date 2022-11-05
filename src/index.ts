@@ -51,31 +51,43 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
         includeItemsFromAllDrives: true,
         corpora: 'drive',
         supportsAllDrives: true,
+        fields: 'files(id,name,capabilities)',
         orderBy: 'name',
         pageSize: 1000,
         q: `'${fromIDFolder}' in parents and mimeType != 'application/vnd.google-apps.folder'`
     });
     if (filesInFolder.data.files) {
         for (const file of filesInFolder.data.files) {
-            if (!db.isFileAlreadyCopy(file.id || '')) {
-                console.log('copy', file.name, file.id);
-                const copyResponse = await gDrive.files.copy({
-                    fileId: file.id!,
-                    supportsAllDrives: true,
-                    requestBody: {
-                        parents: [toIDFolder]
+            if (file.capabilities?.canCopy) {
+                if (!db.isFileAlreadyCopy(file.id || '')) {
+                    console.log('copy', file.name, file.id);
+                    const copyResponse = await gDrive.files.copy({
+                        fileId: file.id!,
+                        supportsAllDrives: true,
+                        requestBody: {
+                            parents: [toIDFolder]
+                        }
+                    });
+                    if (copyResponse.status >= 200 && copyResponse.status < 300) {
+                        console.log('Copy ok');
+                        db.addFile(file.id!)
+                    } else {
+                        console.error(copyResponse.data);
+                        throw new Error('No se pudo realizar la copia')
                     }
-                });
-                if (copyResponse.status >= 200 && copyResponse.status < 300) {
-                    console.log('Copy ok');
-                    db.addFile(file.id!)
                 } else {
-                    console.error(copyResponse.data);
-                    throw new Error('No se pudo realizar la copia')
+                    console.log(`file ${file.name} is already copy, skip`);
                 }
             } else {
-                console.log(`file ${file.name} is already copy, skip`);
+
+                const canCopyFolder = await gDrive.files.get({
+                    supportsAllDrives: true,
+                    fileId: fromIDFolder
+                });
+                console.log(`no se puede copiar el archivo ${file.name} del folder ${canCopyFolder.data.name}`);
+                db.addCantCopy(file.id!, canCopyFolder.data.name!, file.name!)
             }
+
 
         }
     }
