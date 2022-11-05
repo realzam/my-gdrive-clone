@@ -7,9 +7,9 @@ const db = new DB();
 
 async function main() {
     const myArgs = process.argv.slice(2);
-    const [fromFolder] = myArgs;
+    const [fromFolder,toFoler] = myArgs;
     if (!fromFolder) {
-        console.log('use: index.js fromFolderId');
+        console.log('use: index.js fromFolderId (toFolderID)');
         process.exit(1)
     }
 
@@ -22,7 +22,7 @@ async function main() {
     gDrive = google.drive('v3')
     const drivesIDs = ['0AN-9gdb6DX8pUk9PVA', '0ADptXAxVN5G0Uk9PVA'] //Unidad 1, Unidad 2
 
-    await cloneFolder(drivesIDs[0], fromFolder, null)
+    await cloneFolder(drivesIDs[0], fromFolder, toFoler)
 
     console.log('Clonacion finalizada');
     console.log('Adios');
@@ -30,7 +30,7 @@ async function main() {
 
 const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: string | null, deep = 0) => {
     // Copy files in root
-    if (toIDFolder === null) {
+    if (!toIDFolder) {
         const nameOriginFolder = await gDrive.files.get({
             supportsAllDrives: true,
             fileId: fromIDFolder
