@@ -29,7 +29,7 @@ class DB {
     }
 
     saveDBFile() {
-        const info = JSON.stringify({ files: this.files });
+        const info = JSON.stringify({ files: this.files, folder: this.folder });
         fs.writeFileSync(this.dbFilePath, info)
     }
 
