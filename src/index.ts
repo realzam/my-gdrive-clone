@@ -7,7 +7,7 @@ const db = new DB();
 
 async function main() {
     const myArgs = process.argv.slice(2);
-    const [fromFolder,toFoler] = myArgs;
+    const [fromFolder, toFoler] = myArgs;
     if (!fromFolder) {
         console.log('use: index.js fromFolderId (toFolderID)');
         process.exit(1)
@@ -104,16 +104,16 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
     });
     if (subFolders.data.files) {
         for (const subFolder of subFolders.data.files) {
-            const newSubFolder = await gDrive.files.create({
-                supportsAllDrives: true,
-                requestBody: {
-                    name: subFolder.name!,
-                    mimeType: 'application/vnd.google-apps.folder',
-                    parents: [toIDFolder]
-                }
-            });
-            if (subFolder.id && newSubFolder.data.id) {
-                if (!db.isFolderAlreadyCopy(subFolder.id!)) {
+            if (!db.isFolderAlreadyCopy(subFolder.id!)) {
+                const newSubFolder = await gDrive.files.create({
+                    supportsAllDrives: true,
+                    requestBody: {
+                        name: subFolder.name!,
+                        mimeType: 'application/vnd.google-apps.folder',
+                        parents: [toIDFolder]
+                    }
+                });
+                if (subFolder.id && newSubFolder.data.id) {
                     if (deep === 0 || deep === 1) {
                         console.log('\n\n============================\n\n');
                         console.log(subFolder.name || '');
@@ -122,12 +122,11 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
                     await cloneFolder(driveID, subFolder.id!, newSubFolder.data.id!, deep + 1)
                     db.addFolder(subFolder.id)
                 } else {
-                    console.log(`El folder ${subFolder.name} ya esta copiado`);
+                    console.log(newSubFolder.data);
+                    throw new Error('Error al clonar subfolder')
                 }
-
             } else {
-                console.log(newSubFolder.data);
-                throw new Error('Error al clonar subfolder')
+                console.log(`El folder ${subFolder.name} ya esta copiado`);
             }
         }
     }
