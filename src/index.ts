@@ -105,24 +105,49 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
     if (subFolders.data.files) {
         for (const subFolder of subFolders.data.files) {
             if (!db.isFolderAlreadyCopy(subFolder.id!)) {
-                const newSubFolder = await gDrive.files.create({
+                let folderIDTo = '';
+
+                const searchFolderWaittingCopy = await gDrive.files.list({
+                    driveId: driveID,
+                    includeItemsFromAllDrives: true,
+                    corpora: 'drive',
                     supportsAllDrives: true,
-                    requestBody: {
-                        name: subFolder.name!,
-                        mimeType: 'application/vnd.google-apps.folder',
-                        parents: [toIDFolder]
-                    }
+                    orderBy: 'name',
+                    pageSize: 1000,
+                    q: `name = '${subFolder.name}' and '${toIDFolder}' in parents and mimeType = 'application/vnd.google-apps.folder'`
                 });
-                if (subFolder.id && newSubFolder.data.id) {
+
+                if (searchFolderWaittingCopy.data.files?.length === 0) {
+                    console.log('Creando el folder a clonar');
+                    
+                    const newSubFolder = await gDrive.files.create({
+                        supportsAllDrives: true,
+                        requestBody: {
+                            name: subFolder.name!,
+                            mimeType: 'application/vnd.google-apps.folder',
+                            parents: [toIDFolder]
+                        }
+                    });
+                    folderIDTo = newSubFolder.data.id || '';
+                }
+                else {
+                    console.log('El folder ya existe');
+                    const filesFolderTemp = searchFolderWaittingCopy.data.files;
+                    if (filesFolderTemp) {
+                        folderIDTo = filesFolderTemp[0].id || ''
+                    }
+                }
+
+                if (subFolder.id && folderIDTo != '') {
                     if (deep === 0 || deep === 1) {
                         console.log('\n\n============================\n\n');
                         console.log(subFolder.name || '');
                         console.log('\n\n============================\n\n');
                     }
-                    await cloneFolder(driveID, subFolder.id!, newSubFolder.data.id!, deep + 1)
+                    await cloneFolder(driveID, subFolder.id!, folderIDTo, deep + 1)
                     db.addFolder(subFolder.id)
                 } else {
-                    console.log(newSubFolder.data);
+                    console.log(subFolder.name!);
                     throw new Error('Error al clonar subfolder')
                 }
             } else {
