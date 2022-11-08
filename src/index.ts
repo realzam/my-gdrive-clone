@@ -114,7 +114,7 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
                     supportsAllDrives: true,
                     orderBy: 'name',
                     pageSize: 1000,
-                    q: `name = '${subFolder.name}' and '${toIDFolder}' in parents and mimeType = 'application/vnd.google-apps.folder'`
+                    q: `name = '${subFolder.name!.replaceAll('\'','\\\'')}' and '${toIDFolder}' in parents and mimeType = 'application/vnd.google-apps.folder'`
                 });
 
                 if (searchFolderWaittingCopy.data.files?.length === 0) {
