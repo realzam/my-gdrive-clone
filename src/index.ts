@@ -28,6 +28,10 @@ async function main() {
     console.log('Adios');
 }
 
+const sleep = (ms: number) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: string | null, deep = 0) => {
     // Copy files in root
     if (!toIDFolder) {
@@ -61,18 +65,43 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
             if (file.capabilities?.canCopy) {
                 if (!db.isFileAlreadyCopy(file.id || '')) {
                     console.log('copy', file.name, file.id);
-                    const copyResponse = await gDrive.files.copy({
-                        fileId: file.id!,
-                        supportsAllDrives: true,
-                        requestBody: {
-                            parents: [toIDFolder]
+                    let copyOK = false;
+                    for (let retry = 0; retry <= 5; retry++) {
+                        if (retry > 0) {
+                            console.log('intento:', retry);
                         }
-                    });
-                    if (copyResponse.status >= 200 && copyResponse.status < 300) {
-                        console.log('Copy ok');
-                        db.addFile(file.id!)
-                    } else {
-                        console.error(copyResponse.data);
+                        try {
+                            const copyResponse = await gDrive.files.copy({
+                                fileId: file.id!,
+                                supportsAllDrives: true,
+                                requestBody: {
+                                    parents: [toIDFolder]
+                                }
+                            });
+                            if (copyResponse.status >= 200 && copyResponse.status < 300) {
+                                console.log('Copy ok');
+                                db.addFile(file.id!)
+                                copyOK = true;
+                                break;
+                            }
+                            else if (copyResponse.status >= 500) {
+                                console.log('No se pudo realizar la copia (from data response), status code:', copyResponse.status);
+                                await sleep(1000 * 3);
+                                console.error(copyResponse.data);
+                            }
+                            else {
+                                console.log('No se pudo realizar la copia (from data response), status code', copyResponse.status);
+                                break;
+                            }
+                        } catch (error) {
+                            console.log('No se pudo realizar la copia (from catch)');
+                            await sleep(1000 * 3);
+                            // console.error(copyResponse.data);
+                        }
+
+                    }
+                    if (!copyOK) {
+                        console.log(':( que mal, no se pudo realizar la copia del archivo despues de 6 intentos');
                         throw new Error('No se pudo realizar la copia')
                     }
                 } else {
@@ -114,12 +143,12 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
                     supportsAllDrives: true,
                     orderBy: 'name',
                     pageSize: 1000,
-                    q: `name = '${subFolder.name!.replaceAll('\'','\\\'')}' and '${toIDFolder}' in parents and mimeType = 'application/vnd.google-apps.folder'`
+                    q: `name = '${subFolder.name!.replaceAll('\'', '\\\'')}' and '${toIDFolder}' in parents and mimeType = 'application/vnd.google-apps.folder'`
                 });
 
                 if (searchFolderWaittingCopy.data.files?.length === 0) {
                     console.log('Creando el folder a clonar');
-                    
+
                     const newSubFolder = await gDrive.files.create({
                         supportsAllDrives: true,
                         requestBody: {
