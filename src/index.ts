@@ -7,9 +7,20 @@ const db = new DB();
 
 async function main() {
     const myArgs = process.argv.slice(2);
-    const [fromFolder, toFoler] = myArgs;
-    if (!fromFolder) {
-        console.log('use: index.js fromFolderId (toFolderID)');
+    const [unidad, fromFolder, toFoler] = myArgs;
+    let unidadNum: number = 1;
+    if (!unidad || !fromFolder) {
+        console.log('use: index.js unidad (1|2) fromFolderId (toFolderID)');
+        process.exit(1)
+    }
+    try {
+        unidadNum = parseInt(unidad);
+        if (unidadNum != 2) {
+            unidadNum = 1;
+        }
+    } catch (error) {
+        console.log(`unidad:${unidad} no es un numero`);
+        console.log('use: index.js unidad (1|2) fromFolderId (toFolderID)');
         process.exit(1)
     }
 
@@ -22,7 +33,7 @@ async function main() {
     gDrive = google.drive('v3')
     const drivesIDs = ['0AN-9gdb6DX8pUk9PVA', '0ADptXAxVN5G0Uk9PVA'] //Unidad 1, Unidad 2
 
-    await cloneFolder(drivesIDs[0], fromFolder, toFoler)
+    await cloneFolder(drivesIDs[unidadNum - 1], fromFolder, toFoler)
 
     console.log('Clonacion finalizada');
     console.log('Adios');
