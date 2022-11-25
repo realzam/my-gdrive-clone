@@ -33,7 +33,7 @@ async function main() {
     gDrive = google.drive('v3')
     const drivesIDs = ['0AN-9gdb6DX8pUk9PVA', '0ADptXAxVN5G0Uk9PVA'] //Unidad 1, Unidad 2
 
-    await cloneFolder(drivesIDs[unidadNum - 1], fromFolder, toFoler)
+    await cloneFolder(unidadNum, drivesIDs[unidadNum - 1], fromFolder, toFoler)
 
     console.log('Clonacion finalizada');
     console.log('Adios');
@@ -43,8 +43,10 @@ const sleep = (ms: number) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: string | null, deep = 0) => {
+const cloneFolder = async (unit: number = 1, driveID: string, fromIDFolder: string, toIDFolder: string | null, deep = 0) => {
     // Copy files in root
+    const rootFolders = ['1fznzryq-SkeBziHV2Jr-rGExsXkmNweW', '12QRGX0mCaaW9iJRSRi-d6KKu83PsgBww']
+    const rootParent = [rootFolders[unit - 1]];
     if (!toIDFolder) {
         const nameOriginFolder = await gDrive.files.get({
             supportsAllDrives: true,
@@ -56,7 +58,7 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
             requestBody: {
                 name: nameOriginFolder.data.name!,
                 mimeType: 'application/vnd.google-apps.folder',
-                parents: ['1iBCV-igS0mvvcAcRNro1Le3IGxpS0Urb']
+                parents: rootParent
             }
         })
         toIDFolder = newFolderDestiny.data.id!
@@ -184,7 +186,7 @@ const cloneFolder = async (driveID: string, fromIDFolder: string, toIDFolder: st
                         console.log(subFolder.name || '');
                         console.log('\n\n============================\n\n');
                     }
-                    await cloneFolder(driveID, subFolder.id!, folderIDTo, deep + 1)
+                    await cloneFolder(unit, driveID, subFolder.id!, folderIDTo, deep + 1)
                     db.addFolder(subFolder.id)
                 } else {
                     console.log(subFolder.name!);
